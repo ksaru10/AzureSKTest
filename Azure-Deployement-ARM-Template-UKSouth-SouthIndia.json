@@ -1,0 +1,413 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "username": {
+            "type": "string",
+            "defaultValue": "azureuser"
+        },
+        "password": {
+            "type": "securestring"
+        }
+    },
+    "variables": {
+        "deploymentUrl": "[deployment().properties.templateLink.uri]",
+        "southindiaVnetName": "southindia-vnet",
+        "southindiaVnetAddressPrefix": "10.1.0.0/16",
+        "southindiaVnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks', variables('southindiaVnetName'))]",
+        "southindiaNSGName": "southindia-nsg",
+        "southindiaNSGResourceId": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('southindiaNSGName'))]",
+        "southindiaVMName": "southindia-vm",
+        "southindiaVMNicName": "southindia-vm-nic",
+        "southindiaVMNicPIPName": "southindia-vm-nic-pip",
+        "southindiaSubnetName": "southindia-subnet",
+        "southindiaSubnetPrefix": "10.1.0.0/24",
+        "southindiaVMDNSName": "[concat(variables('southindiaVMName'), '-', uniqueString(resourceGroup().id))]",
+        "southindiaVMNicResourceId": "[resourceId('Microsoft.Network/networkInterfaces', variables('southindiaVMNicName'))]",
+        "southindiaVMNicPIPResourceId": "[resourceId('Microsoft.Network/publicIPAddresses', variables('southindiaVMNicPIPName'))]",
+        "southindiaSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('southindiaVnetName'), variables('southindiaSubnetName'))]",
+        "uksouthVnetName": "uksouth-vnet",
+        "uksouthVnetAddressPrefix": "10.2.0.0/16",
+        "uksouthVnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks', variables('uksouthVnetName'))]",
+        "uksouthNSGName": "uksouth-nsg",
+        "uksouthNSGResourceId": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('uksouthNSGName'))]",
+        "uksouthVMName": "uksouth-vm",
+        "uksouthVMNicName": "uksouth-vm-nic",
+        "uksouthVMNicPIPName": "uksouth-vm-nic-pip",
+        "uksouthSubnetName": "uksouth-subnet",
+        "uksouthSubnetPrefix": "10.2.0.0/24",
+        "uksouthVMDNSName": "[concat(variables('uksouthVMName'), '-', uniqueString(resourceGroup().id))]",
+        "uksouthVMNicResourceId": "[resourceId('Microsoft.Network/networkInterfaces', variables('uksouthVMNicName'))]",
+        "uksouthVMNicPIPResourceId": "[resourceId('Microsoft.Network/publicIPAddresses', variables('uksouthVMNicPIPName'))]",
+        "uksouthSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('uksouthVnetName'), variables('uksouthSubnetName'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('southindiaNSGName')]",
+            "apiVersion": "2018-08-01",
+            "location": "southindia",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "http",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 300,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('uksouthNSGName')]",
+            "apiVersion": "2018-08-01",
+            "location": "uksouth",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "http",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 300,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('southindiaVnetName')]",
+            "apiVersion": "2018-08-01",
+            "location": "southindia",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('southindiaVnetAddressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('southindiaSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('southindiaSubnetPrefix')]"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('uksouthVnetName')]",
+            "apiVersion": "2018-08-01",
+            "location": "uksouth",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('uksouthVnetAddressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('uksouthSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('uksouthSubnetPrefix')]"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "sku": {
+                "name": "Basic",
+                "tier": "Regional"
+            },
+            "name": "[variables('southindiaVMNicPIPName')]",
+            "apiVersion": "2018-08-01",
+            "location": "southindia",
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Static",
+                "dnsSettings": {
+                    "domainNameLabel": "[variables('southindiaVMDNSName')]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "sku": {
+                "name": "Basic",
+                "tier": "Regional"
+            },
+            "name": "[variables('uksouthVMNicPIPName')]",
+            "apiVersion": "2018-08-01",
+            "location": "uksouth",
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Static",
+                "dnsSettings":{
+                    "domainNameLabel": "[variables('uksouthVMDNSName')]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('southindiaVMNicName')]",
+            "apiVersion": "2018-08-01",
+            "location": "southindia",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.1.0.4",
+                            "privateIPAllocationMethod": "Static",
+                            "publicIPAddress": {
+                                "id": "[variables('southindiaVMNicPIPResourceId')]"
+                            },
+                            "subnet": {
+                                "id": "[variables('southindiaSubnetResourceId')]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false,
+                "primary": true,
+                "networkSecurityGroup": {
+                    "id": "[variables('southindiaNSGResourceId')]"
+                }
+            },
+            "dependsOn": [
+                "[variables('southindiaVMNicPIPName')]",
+                "[variables('southindiaVnetResourceId')]",
+                "[variables('southindiaNSGResourceId')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('uksouthVMNicName')]",
+            "apiVersion": "2018-08-01",
+            "location": "uksouth",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.2.0.4",
+                            "privateIPAllocationMethod": "Static",
+                            "publicIPAddress": {
+                                "id": "[variables('uksouthVMNicPIPResourceId')]"
+                            },
+                            "subnet": {
+                                "id": "[variables('uksouthSubnetResourceId')]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false,
+                "primary": true,
+                "networkSecurityGroup": {
+                    "id": "[variables('uksouthNSGResourceId')]"
+                }
+            },
+            "dependsOn": [
+                "[variables('uksouthVMNicPIPName')]",
+                "[variables('uksouthVnetResourceId')]",
+                "[variables('uksouthNSGResourceId')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('southindiaVMName')]",
+            "apiVersion": "2018-06-01",
+            "location": "southindia",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_DS1_v2"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "18.04-LTS",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "[concat(variables('southindiaVMName'), '-disk')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                        },
+                        "diskSizeGB": 30
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[variables('southindiaVMName')]",
+                    "adminUsername": "[parameters('username')]",
+                    "adminPassword": "[parameters('password')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false,
+                        "provisionVMAgent": true
+                    },
+                    "secrets": [],
+                    "allowExtensionOperations": true
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[variables('southindiaVMNicResourceId')]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": false
+                    }
+                }
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "name": "apache-ext",
+                    "apiVersion": "2018-10-01",
+                    "location": "southindia",
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "skipDos2Unix": true
+                        },
+                        "protectedSettings": {
+                            "commandToExecute": "sh setup-nginx.sh southindia",
+                            "fileUris": [
+                                "[uri(variables('deploymentUrl'), 'setup-nginx.sh')]"
+                            ]
+                        }
+                    },
+                    "dependsOn": [
+                        "[variables('southindiaVMName')]"
+                    ]
+                }
+            ],
+            "dependsOn": [
+                "[variables('southindiaVMNicName')]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('uksouthVMName')]",
+            "apiVersion": "2018-06-01",
+            "location": "uksouth",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_DS1_v2"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "18.04-LTS",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "[concat(variables('uksouthVMName'), '-disk')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                        },
+                        "diskSizeGB": 30
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[variables('uksouthVMName')]",
+                    "adminUsername": "[parameters('username')]",
+                    "adminPassword": "[parameters('password')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false,
+                        "provisionVMAgent": true
+                    },
+                    "secrets": [],
+                    "allowExtensionOperations": true
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[variables('uksouthVMNicResourceId')]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": false
+                    }
+                }
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "name": "apache-ext",
+                    "apiVersion": "2018-10-01",
+                    "location": "uksouth",
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "skipDos2Unix": true
+                        },
+                        "protectedSettings": {
+                            "commandToExecute": "sh setup-nginx.sh uksouth",
+                            "fileUris": [
+                                "[uri(variables('deploymentUrl'), 'setup-nginx.sh')]"
+                            ]
+                        }
+                    },
+                    "dependsOn": [
+                        "[variables('uksouthVMName')]"
+                    ]
+                }
+            ],
+            "dependsOn": [
+                "[variables('uksouthVMNicName')]"
+            ]
+        }
+    ],
+    "outputs": {}
+}
